@@ -37,7 +37,7 @@ instance Tangle Op where
   Mangle `with` (Arg _ ps) = do 
     merge <- (lookup "merge-size" ps) `dflt` 1
     chunk <- (lookup "chunk-size" ps) `dflt` 4
-    return $ mangle merge chunk
+    return $ mangle chunk merge
 
   Cipher `with` (Arg [ciph, key] rs) = do
     c <- getCipher ciph

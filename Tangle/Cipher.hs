@@ -1,6 +1,6 @@
 module Tangle.Cipher
-( encMonoKey
-, decMonoKey
+( encMono
+, decMono
 , encVig
 , decVig
 ) where
@@ -9,25 +9,33 @@ import Tangle.Base
 import Data.Char
 import Data.List
 import Data.Maybe
+import Data.Function
 
-alphabet  = ['a'..'z']
+keyedAlphabet :: String -> String
+keyedAlphabet = nub . (++ lcAlpha) . lowercaseLetters
 
-keyedAlphabet = nub . (++ alphabet) . lowercaseLetters
-
+lowercaseLetters :: String -> String
 lowercaseLetters = map toLower . filter isLetter
 
-caseTranslate i o = (translate (map toUpper i) (map toUpper o)) . (translate (map toLower i) (map toLower o))
+caseTranslate :: String -> String -> String -> String
+caseTranslate i o = ((translate `on` (map toUpper)) i o) . ((translate `on` (map toLower)) i o)
 
+vigKeys :: String -> [String]
 vigKeys = map shiftedKey . lowercaseLetters
-  where shiftedKey c = shift n alphabet
-          where    n = fromMaybe 0 $ elemIndex (toLower c) alphabet
+  where shiftedKey c = shift n lcAlpha
+          where    n = fromMaybe 0 $ elemIndex (toLower c) lcAlpha
 
-encMonoKey = caseTranslate alphabet          . keyedAlphabet
-decMonoKey = (flip caseTranslate $ alphabet) . keyedAlphabet
+encMono :: String -> String -> String
+encMono = caseTranslate lcAlpha          . keyedAlphabet
 
+decMono :: String -> String -> String
+decMono = (flip caseTranslate $ lcAlpha) . keyedAlphabet
+
+encVig :: String -> String -> String
 encVig key = concatMap trans . (zip $ cycle $ vigKeys key) . map (:[])
-  where trans (k, s) = caseTranslate alphabet k s
+  where trans (k, s) = caseTranslate lcAlpha k s
 
+decVig :: String -> String -> String
 decVig key = concatMap trans . (zip $ cycle $ vigKeys key) . map (:[])
-  where trans (k, s) = caseTranslate k alphabet s
+  where trans (k, s) = caseTranslate k lcAlpha s
 

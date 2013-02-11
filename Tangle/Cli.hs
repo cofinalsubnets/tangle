@@ -51,7 +51,7 @@ instance Tangle Op where
                              Nothing -> Left $ "-- Don't know about cipher `" ++ ciph ++ "'"
                              Just c  -> Right c
           ciphMap = [ ("vig",  (encVig, decVig))
-                    , ("mono", (encMonoKey, decMonoKey)) ]
+                    , ("mono", (encMono, decMono)) ]
 
 
 dflt Nothing n  = Right n

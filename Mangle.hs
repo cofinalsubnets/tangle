@@ -40,14 +40,11 @@ synth n (base:strs) = case synth' base strs of
 mangle :: Int -> Int -> String -> String
 mangle chunk merge = unwords . map unwords . synth merge . slices chunk . words
 
-main = runMangle
-
-runMangle = do Options c m <- parseArgs
+runMangle = do Options c m <- getArgs >>= parseArgs
                getContents >>= putStr . mangle c m
 
-parseArgs :: IO Options
-parseArgs = do 
-  args <- getArgs
+parseArgs :: [String] -> IO Options
+parseArgs args = do 
   case getOpt Permute options args of
     (o,[],[]) -> return $ foldr ($) defaultOpts o
     (_,ns,es) -> do

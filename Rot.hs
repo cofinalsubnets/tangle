@@ -32,10 +32,7 @@ rot47  :: String -> String
 rot47  = rot 47 $ sevenBitPrintable
 
 runRot = do args <- getArgs
-            text <- getContents
-            case args of [n] -> putStr $ caesar (read n) text
+            case args of [n] -> getContents >>= putStr . (caesar $ read n)
                          otherwise -> putStrLn usage >> exitFailure
             where usage = "Usage: tangle -r N"
-
-main = runRot
 

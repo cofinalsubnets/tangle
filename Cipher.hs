@@ -15,7 +15,10 @@ import System.Console.GetOpt
 import System.Environment
 import System.Exit
 
+letters  :: String -> String
 letters  = filter isLetter
+
+downcase :: String -> String
 downcase = map toLower
 
 keyedAlphabet :: String -> String
@@ -43,16 +46,15 @@ decVig     :: String -> String -> String
 decVig key = concatMap trans . (zip $ cycle $ vigKeys key) . map (:[])
   where trans (k, s) = caseTranslate k lcAlpha s
 
-
 -- command line interaction
 
 data Cipher = Mono | Vig
 
 cipher :: Cipher -> Bool -> String -> String -> String
-cipher c d = case (c, d) of (Mono, False) -> encMono
-                            (Mono, True)  -> decMono
-                            (Vig,  False) -> encVig
-                            (Vig,  True)  -> decVig
+cipher Mono False = encMono
+cipher Mono True  = decMono
+cipher Vig  False = encVig
+cipher Vig  True  = decVig
 
 data Options = Options { ciph   :: Cipher
                        , deciph :: Bool
@@ -81,9 +83,8 @@ options = [ Option "k" ["key"]
 defaultOpts :: Options
 defaultOpts = Options Mono False "" 1
 
-parseArgs :: IO Options
-parseArgs = do
-  args <- getArgs
+parseArgs      :: [String] -> IO Options
+parseArgs args = do
   case getOpt Permute options args of
     (o,[],[]) -> return $ foldr ($) defaultOpts o
     (_,ns,es) -> do
@@ -94,8 +95,8 @@ parseArgs = do
       putStr usage
       exitFailure
 
-runCipher = do Options c d k r <- parseArgs
-               let fn = (!!r) . (iterate $ cipher c d k)
-               getContents >>= putStr . fn
+runCipher :: IO ()
+runCipher = do Options c d k r <- getArgs >>= parseArgs
+               let run = (!!r) . (iterate $ cipher c d k)
+               getContents >>= putStr . run
 
-main = runCipher

@@ -1,6 +1,6 @@
-import Mangle
 import Rot
 import Cipher
+import Mangle
 import System.Environment
 import System.Exit
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env runhaskell
-import Tangle.Base
-import Tangle.Rot
-import Tangle.Cipher
-import Tangle.Mangle
+import Base
+import Rot
+import Cipher
+import Mangle
 
 test          :: String -> [(Bool, String)] -> IO ()
 test name exs = do putStrLn $ " -- " ++ name
@@ -29,8 +29,8 @@ rotExamples = [ ((rot13 "abjureR"  ) == "nowherE", "rot13"                )
               , ((caesar (-1) "abc") == "zab",     "negative caesar shift")
               ]
 
-exampleGroups = [ ("Tangle.Base", baseExamples)
-                , ("Tangle.Rot",  rotExamples )
+exampleGroups = [ ("Base", baseExamples)
+                , ("Rot",  rotExamples )
                 ]
 
 main = mapM_ (\ (n,xs) -> test n xs) exampleGroups

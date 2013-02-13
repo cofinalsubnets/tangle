@@ -24,6 +24,7 @@ slices _ [] = []
 slices n ls = s : (slices n l)
   where (s, l) = splitAt n ls
 
+lctx     :: Eq a => [a] -> [a] -> Int
 lctx x y = if lx > ly then lctx' (drop (lx - ly) x) y else lctx' x y
   where (lx,ly) = (length x, length y)
         lctx' x y
@@ -69,6 +70,7 @@ parseArgs args = do
 mangleExamples = [ (bestMerge mergeHead chunks  == (Just (c2, 2), [c1]), "bestMerge success case"  )
                  , (bestMerge mergeHead chunks' == (Nothing, [c2',c1']),   "bestMerge failure case")
                  ]
+
   where mergeHead = words $ "oh hello there friend"
         chunks    = [c1,c2]
         c1        = words $ "friend hello oh wow"

@@ -10,8 +10,8 @@ build:
 clean:
 	rm -f ${BINNAME} *.hi *.o
 
-test:
-	runhaskell Test.hs
+#test:
+#	runhaskell Test.hs
 
 install: build
 	mkdir -p ${DESTDIR}${PREFIX}${BINDIR}

@@ -1,6 +1,7 @@
 module Mangle
 ( mangle
 , runMangle
+, mangleExamples
 ) where
 
 import Data.List
@@ -16,52 +17,42 @@ defaultOpts :: Options
 defaultOpts = Options { chunkSize = 4, mergeSize = 1 }
 
 options :: [OptDescr (Options -> Options)]
-options = [ Option "c" ["chunk"] (ReqArg (\n opt -> opt { chunkSize = read n }) "CHUNK") "chunk size"
-          , Option "m" ["merge"] (ReqArg (\n opt -> opt { mergeSize = read n }) "MERGE") "merge size"
-          ]
+options = [ Option "c" ["chunk-size"] (ReqArg (\n opt -> opt { chunkSize = read n }) "CHUNK") "chunk size" ]
 
 slices :: Int -> [a] -> [[a]]
 slices _ [] = []
 slices n ls = s : (slices n l)
   where (s, l) = splitAt n ls
 
-synth :: Eq a => Int -> [[a]] -> [a]
-synth _ [] = []
-synth n (base:strs) = case synth' base strs of
-  (Nothing,  _) -> synth n strs
-  (Just m, rem) -> m ++ (synth n rem)
+lctx x y = if lx > ly then lctx' (drop (lx - ly) x) y else lctx' x y
+  where (lx,ly) = (length x, length y)
+        lctx' x y
+          | null x         = 0
+          | isPrefixOf x y = length x
+          | otherwise      = lctx' (tail x) y
 
-  where synth' base strs = case ms of []     -> (Nothing, rem)
-                                      (w:ws) -> (Just $ prel ++ w, ws ++ rem)
+bestMerge       :: [String] -> [[String]] -> (Maybe ([String],Int), [[String]])
+bestMerge mh cs = foldl mcheck (Nothing, []) cs
+  where mcheck (m,l) c = case lctx mh c of 0 -> (m,c:l)
+                                           n -> case m of Nothing      -> (Just (c,n), l)
+                                                          Just (c',n') -> if n > n'
+                                                                          then (Just (c,n), c':l)
+                                                                          else (m, c:l)
 
-          where (ms, rem)    = partition (isPrefixOf term) strs
-                (prel, term) = splitAt (length base - n) base
+snth        :: [[String]] -> [String]
+snth []     = []
+snth (c:cs) = let (ms,_,_) = until (\(_,_,l) -> null l) snth' ([c],c,cs) in concat $ reverse ms
 
-mangle :: Int -> Int -> String -> String
-mangle chunk merge = unwords . synth merge . slices chunk . words
+snth' :: ([[String]], [String], [[String]]) -> ([[String]], [String], [[String]])
+snth' (ms, mh, cs) = let (m,nxt) = bestMerge mh cs
+                     in case m of Nothing    -> let nh = head nxt in (nh:ms, nh, tail nxt)
+                                  Just (c,n) -> ((drop n c):ms, c, nxt)
 
-mangle' chunk = unwords . snth . slices chunk . words
-  where
-    matchLen x y = length $ takeWhile (id) $ zipWith (==) x y
-    snth [] = []
-    snth (c:cs) = let ms = fst $ until (\(_,l) -> null l) snth' ([c],cs)
-                      mrg x y = x ++ (drop (matchLen x y) y)
-                  in foldr1 (flip mrg) ms
-    snth' (ms@(mh:mt),cs) = let (m,nxt) = foldl bestMerge (Nothing, []) cs
-                            in case m of Nothing    -> ((head nxt):ms, tail nxt)
-                                         Just (c,_) -> (c:ms, nxt)
-      where bestMerge (m,l) c = case matchLen mh c of
-                                  0 -> (m,c:l)
-                                  n -> case m of
-                                         Nothing -> (Just (c,n), l)
-                                         Just (m',n') -> if n > n'
-                                                         then (Just (c,n), m':l)
-                                                         else (m, c:l)
-
-    
+mangle   :: Int -> String -> String
+mangle n = unwords . snth . slices n . words
 
 runMangle = do Options c m <- getArgs >>= parseArgs
-               getContents >>= putStr . mangle' c
+               getContents >>= putStr . mangle c
 
 parseArgs :: [String] -> IO Options
 parseArgs args = do 
@@ -74,4 +65,15 @@ parseArgs args = do
       mapM_ putStr (unrecs ++ es)
       putStr usage
       exitFailure
+
+mangleExamples = [ (bestMerge mergeHead chunks  == (Just (c2, 2), [c1]), "bestMerge success case"  )
+                 , (bestMerge mergeHead chunks' == (Nothing, [c2',c1']),   "bestMerge failure case")
+                 ]
+  where mergeHead = words $ "oh hello there friend"
+        chunks    = [c1,c2]
+        c1        = words $ "friend hello oh wow"
+        c2        = words $ "there friend no way"
+        chunks'   = [c1',c2']
+        c1'       = words $ "a b c d"
+        c2'       = words $ "e f g h"
 

@@ -6,6 +6,7 @@ module Rot
 , rot47
 , caesar
 , runRot
+, rotExamples
 ) where
 
 import Base
@@ -35,4 +36,10 @@ runRot = do args <- getArgs
             case args of [n] -> getContents >>= putStr . (caesar $ read n)
                          otherwise -> putStrLn usage >> exitFailure
             where usage = "Usage: tangle -r N"
+
+rotExamples = [ ((rot13 "abjureR"  ) == "nowherE", "rot13"                )
+              , ((rot13' "Barb56"  ) == "Oneo01",  "rot13 with rot5"      )
+              , ((caesar 1 "abc"   ) == "bcd",     "positive caesar shift")
+              , ((caesar (-1) "abc") == "zab",     "negative caesar shift")
+              ]
 

@@ -1,15 +1,28 @@
+import Tangle
 import System.Environment
 import System.Exit
-import qualified Tangle.Rot.Run    as R
-import qualified Tangle.Cipher.Run as C
-import qualified Tangle.Mangle.Run as M
+import System.Console.GetOpt
 
-main = do
-  args <- getArgs
-  case args of []     -> putStrLn usage
-               (a:as) -> case lookup a actionMap of Just fn -> fn as
-                                                    Nothing -> do putStrLn usage
-                                                                  exitFailure
-  where usage     = "Usage: tangle (r|c|m) [OPTIONS...]"
-        actionMap = [ ("r", R.run), ("c", C.run), ("m", M.run)]
+main = do Options c <- getArgs >>= parseArgs
+          getContents >>= putStrLn . mangle c
+
+parseArgs :: [String] -> IO Options
+parseArgs args = do 
+  case getOpt Permute options args of
+    (o,[],[]) -> return $ foldr ($) defaultOpts o
+    (_,ns,es) -> do
+      let unrecs = map (\n -> "Unknown argument: " ++ n ++ "\n") ns
+          header = "Usage: tangle [OPTIONS...]"
+          usage  = usageInfo header options
+      mapM_ putStr (unrecs ++ es)
+      putStr usage
+      exitFailure
+
+data Options = Options { chunkSize :: Int }
+
+defaultOpts :: Options
+defaultOpts = Options { chunkSize = 4 }
+
+options :: [OptDescr (Options -> Options)]
+options = [ Option "c" ["chunk-size"] (ReqArg (\n opt -> opt { chunkSize = read n }) "CHUNK") "chunk size" ]
 

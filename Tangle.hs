@@ -1,7 +1,4 @@
-module Tangle.Mangle
-( mangle
-, mangleExamples
-) where
+module Tangle (mangle) where
 
 import Data.List
 
@@ -52,16 +49,4 @@ snth (c:cs) = let (ms,_,_) = until (\(_,_,l) -> null l) snth' ([c],c,cs) in conc
     snth' (ms, mh, cs) = let (m,nxt) = bestMerge mh cs
                          in case m of Nothing    -> let nh = head nxt in (nh:ms, nh, tail nxt)
                                       Just (c,n) -> ((drop n c):ms, c, nxt)
-
-mangleExamples = [ (bestMerge mergeHead chunks  == (Just (c2, 2), [c1]),   "bestMerge success case")
-                 , (bestMerge mergeHead chunks' == (Nothing, [c2',c1']),   "bestMerge failure case")
-                 ]
-
-  where mergeHead = words $ "oh hello there friend"
-        chunks    = [c1,c2]
-        c1        = words $ "friend hello oh wow"
-        c2        = words $ "there friend no way"
-        chunks'   = [c1',c2']
-        c1'       = words $ "a b c d"
-        c2'       = words $ "e f g h"
 

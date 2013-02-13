@@ -11,8 +11,22 @@ import Data.List
 import Data.Maybe
 import Data.Function
 
-letters  :: String -> String
-letters  = filter isLetter
+encMono :: String -> String -> String
+encMono = caseTranslate lcAlpha          . keyedAlphabet
+
+decMono :: String -> String -> String
+decMono = (flip caseTranslate $ lcAlpha) . keyedAlphabet
+
+encVig     :: String -> String -> String
+encVig key = concatMap trans . (zip $ cycle $ vigKeys key) . map (:[])
+  where trans (k, s) = caseTranslate lcAlpha k s
+
+decVig     :: String -> String -> String
+decVig key = concatMap trans . (zip $ cycle $ vigKeys key) . map (:[])
+  where trans (k, s) = caseTranslate k lcAlpha s
+
+letters :: String -> String
+letters = filter isLetter
 
 downcase :: String -> String
 downcase = map toLower
@@ -27,18 +41,4 @@ vigKeys :: String -> [String]
 vigKeys = map shiftedKey . downcase . letters
   where shiftedKey c = shift n lcAlpha
           where    n = fromMaybe 0 $ elemIndex (toLower c) lcAlpha
-
-encMono :: String -> String -> String
-encMono = caseTranslate lcAlpha          . keyedAlphabet
-
-decMono :: String -> String -> String
-decMono = (flip caseTranslate $ lcAlpha) . keyedAlphabet
-
-encVig     :: String -> String -> String
-encVig key = concatMap trans . (zip $ cycle $ vigKeys key) . map (:[])
-  where trans (k, s) = caseTranslate lcAlpha k s
-
-decVig     :: String -> String -> String
-decVig key = concatMap trans . (zip $ cycle $ vigKeys key) . map (:[])
-  where trans (k, s) = caseTranslate k lcAlpha s
 

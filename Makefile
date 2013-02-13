@@ -8,7 +8,7 @@ build:
 	ghc ${GHCFLAGS}
 
 clean:
-	rm -rf ${BINNAME} *.hi *.o
+	rm -f ${BINNAME} **/*.hi **/*.o
 
 test:
 	runhaskell Test.hs

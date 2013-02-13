@@ -25,11 +25,11 @@ slices _ [] = []
 slices n ls = s : (slices n l)
   where (s, l) = splitAt n ls
 
-synth :: Eq a => Int -> [[a]] -> [[a]]
+synth :: Eq a => Int -> [[a]] -> [a]
 synth _ [] = []
 synth n (base:strs) = case synth' base strs of
   (Nothing,  _) -> synth n strs
-  (Just m, rem) -> m:(synth n rem)
+  (Just m, rem) -> m ++ (synth n rem)
 
   where synth' base strs = case ms of []     -> (Nothing, rem)
                                       (w:ws) -> (Just $ prel ++ w, ws ++ rem)
@@ -38,10 +38,30 @@ synth n (base:strs) = case synth' base strs of
                 (prel, term) = splitAt (length base - n) base
 
 mangle :: Int -> Int -> String -> String
-mangle chunk merge = unwords . map unwords . synth merge . slices chunk . words
+mangle chunk merge = unwords . synth merge . slices chunk . words
+
+mangle' chunk = unwords . snth . slices chunk . words
+  where
+    matchLen x y = length $ takeWhile (id) $ zipWith (==) x y
+    snth [] = []
+    snth (c:cs) = let ms = fst $ until (\(_,l) -> null l) snth' ([c],cs)
+                      mrg x y = x ++ (drop (matchLen x y) y)
+                  in foldr1 (flip mrg) ms
+    snth' (ms@(mh:mt),cs) = let (m,nxt) = foldl bestMerge (Nothing, []) cs
+                            in case m of Nothing    -> ((head nxt):ms, tail nxt)
+                                         Just (c,_) -> (c:ms, nxt)
+      where bestMerge (m,l) c = case matchLen mh c of
+                                  0 -> (m,c:l)
+                                  n -> case m of
+                                         Nothing -> (Just (c,n), l)
+                                         Just (m',n') -> if n > n'
+                                                         then (Just (c,n), m':l)
+                                                         else (m, c:l)
+
+    
 
 runMangle = do Options c m <- getArgs >>= parseArgs
-               getContents >>= putStr . mangle c m
+               getContents >>= putStr . mangle' c
 
 parseArgs :: [String] -> IO Options
 parseArgs args = do 

@@ -2,9 +2,11 @@ import Tangle
 import System.Environment
 import System.Exit
 import System.Console.GetOpt
+import System.Random
 
-main = do Options c <- getArgs >>= parseArgs
-          getContents >>= putStrLn . mangle c
+main = do rng <- getStdGen
+          Options c <- getArgs >>= parseArgs
+          getContents >>= putStrLn . mangle c rng
 
 parseArgs :: [String] -> IO Options
 parseArgs args = do 
@@ -21,7 +23,7 @@ parseArgs args = do
 data Options = Options { chunkSize :: Int }
 
 defaultOpts :: Options
-defaultOpts = Options { chunkSize = 4 }
+defaultOpts = Options { chunkSize = 8 }
 
 options :: [OptDescr (Options -> Options)]
 options = [ Option "c" ["chunk-size"] (ReqArg (\n opt -> opt { chunkSize = read n }) "CHUNK") "chunk size" ]

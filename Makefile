@@ -2,20 +2,20 @@ PREFIX := /usr/local
 BINDIR := /bin
 BINNAME := tangle
 
-GHCFLAGS = --make Main.hs -o ${BINNAME} -dynamic
+GHCFLAGS := -Wall -Werror -O2
 
 build:
-	ghc ${GHCFLAGS}
+	ghc --make Main.hs -o ${BINNAME} ${GHCFLAGS}
 
 clean:
-	rm -f ${BINNAME} *.hi *.o
+	rm -f *.{hi,o} Trie/*.{hi,o}
 
 #test:
 #	runhaskell Test.hs
 
 install: build
 	mkdir -p ${DESTDIR}${PREFIX}${BINDIR}
-	cp tangle ${DESTDIR}${PREFIX}${BINDIR}
+	mv tangle ${DESTDIR}${PREFIX}${BINDIR}
 	chmod 755 ${DESTDIR}${PREFIX}${BINDIR}/${BINNAME}
 
 uninstall:

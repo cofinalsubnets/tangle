@@ -4,9 +4,11 @@ import System.Exit
 import System.Console.GetOpt
 import System.Random
 
+main :: IO ()
 main = do rng <- getStdGen
           Options c <- getArgs >>= parseArgs
-          getContents >>= putStrLn . mangle c rng
+          txt <- getContents 
+          putStrLn . unwords . take c $ mangle txt (head $ words txt) rng
 
 parseArgs :: [String] -> IO Options
 parseArgs args = do 
@@ -20,11 +22,11 @@ parseArgs args = do
       putStr usage
       exitFailure
 
-data Options = Options { chunkSize :: Int }
+data Options = Options { maxWords :: Int }
 
 defaultOpts :: Options
-defaultOpts = Options { chunkSize = 8 }
+defaultOpts = Options { maxWords = 1000 }
 
 options :: [OptDescr (Options -> Options)]
-options = [ Option "c" ["chunk-size"] (ReqArg (\n opt -> opt { chunkSize = read n }) "CHUNK") "chunk size" ]
+options = [ Option "w" ["words"] (ReqArg (\n opt -> opt { maxWords = read n }) "WORDS") "maximum number of words to generate" ]
 

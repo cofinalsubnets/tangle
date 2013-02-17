@@ -10,8 +10,8 @@ build:
 clean:
 	rm -f *.{hi,o} Trie/*.{hi,o}
 
-#test:
-#	runhaskell Test.hs
+test:
+	runhaskell test/TrieTests.hs
 
 install: build
 	mkdir -p ${DESTDIR}${PREFIX}${BINDIR}

@@ -27,11 +27,16 @@ slices n ls = s : (slices n l)
   where (s, l) = splitAt n ls
 
 train :: Int -> String -> WordMap
-train n = foldl count TM.mkTrie . prep . words
-  where prep ws = concatMap section [2..n+1]
-          where section i = concatMap (slices i) $ map (flip rot $ ws) [0..i-1]
+train n str = foldl count TM.mkTrie groups
+  where groups = concat [groupWs (words str) i | i <- [2..n]]
         count d ws = TM.insert (init ws) (TC.insert (last ws) d') d
           where d' = fromMaybe TC.mkTrie $ TM.lookup (init ws) d
+
+rots :: [a] -> Int -> [[a]]
+rots ws n = [rot i ws | i <- [0..n-1]]
+
+groupWs :: [a] -> Int -> [[a]]
+groupWs ws n = filter (\s -> length s == n) $ concatMap (slices n) $ rots ws n
         
 nxts :: [String] -> WordMap -> [(String,Int)]
 nxts [] _ = []

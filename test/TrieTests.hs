@@ -61,4 +61,3 @@ main = do quickCheck prop_valClobber
           quickCheck prop_mapNonKey
           quickCheck prop_keysFrom
          
-

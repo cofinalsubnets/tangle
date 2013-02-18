@@ -6,9 +6,9 @@ import System.Random
 
 main :: IO ()
 main = do rng <- getStdGen
-          Options c <- getArgs >>= parseArgs
+          Options w h <- getArgs >>= parseArgs
           txt <- getContents 
-          putStrLn . unwords . take c $ mangle txt (head $ words txt) rng
+          putStrLn . unwords . take w $ mangle h txt (take h $ words txt) rng
 
 parseArgs :: [String] -> IO Options
 parseArgs args = do 
@@ -22,11 +22,21 @@ parseArgs args = do
       putStr usage
       exitFailure
 
-data Options = Options { maxWords :: Int }
+data Options = Options { maxWords :: Int
+                       , history  :: Int
+                       }
 
 defaultOpts :: Options
-defaultOpts = Options { maxWords = 1000 }
+defaultOpts = Options { maxWords = 1000 
+                      , history  = 1
+                      }
 
 options :: [OptDescr (Options -> Options)]
-options = [ Option "w" ["words"] (ReqArg (\n opt -> opt { maxWords = read n }) "WORDS") "maximum number of words to generate" ]
+options = [ Option "w" ["words"] 
+              (ReqArg (\n opt -> opt { maxWords = read n }) "WORDS")
+              "maximum number of words to generate" 
+          , Option "h" ["history"]
+              (ReqArg (\n opt -> opt { history = read n }) "HISTORY")
+              "number of previous states to retain" 
+          ]
 

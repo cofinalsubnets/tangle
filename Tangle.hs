@@ -28,7 +28,7 @@ slices n ls = s : (slices n l)
 
 train :: Int -> String -> WordMap
 train n str = foldl count TM.mkTrie groups
-  where groups = concat [groupWs (words str) i | i <- [2..n]]
+  where groups = concat [groupWs (words str) i | i <- [2..n+1]]
         count d ws = TM.insert (init ws) (TC.insert (last ws) d') d
           where d' = fromMaybe TC.mkTrie $ TM.lookup (init ws) d
 

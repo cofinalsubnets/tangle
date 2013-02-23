@@ -36,9 +36,7 @@ mkTrie = Node Nothing $ M.fromList []
 -- value wrapped in Just; otherwise return Nothing.
 lookup          :: Ord a => [a] -> TrieMap a b -> Maybe b
 lookup [] n     = value n
-lookup (c:cs) n = do nxt <- M.lookup c $ nodes n
-                     k   <- lookup cs nxt
-                     Just k
+lookup (c:cs) n = M.lookup c (nodes n) >>= lookup cs >>= return
 
 -- | Insert the given key-value pair into the trie. If the key already exists,
 -- replace its value.
@@ -180,7 +178,7 @@ zipTop z = case zipUp z of Nothing -> z
 
 -- | Attempt to move down one level in the trie.
 zipDn          :: Ord a => a -> Zip a b -> Maybe (Zip a b)
-zipDn k ((Node v ns),ps) = M.lookup k ns >>= Just . (,context:ps)
+zipDn k (Node v ns,ps) = M.lookup k ns >>= return . (,context:ps)
   where context = Context v k nodemap
         nodemap = M.delete k ns
 

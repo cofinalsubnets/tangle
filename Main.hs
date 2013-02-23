@@ -3,22 +3,24 @@ import System.Environment
 import System.Exit
 import System.Console.GetOpt
 import System.Random
+import Control.Monad
 
 main :: IO ()
 main = do rng <- getStdGen
-          Options w h <- getArgs >>= parseArgs
-          txt <- getContents 
+          (Options w h, files) <- getArgs >>= parseArgs
+          txt <- if null files
+                 then getContents
+                 else liftM unwords $ mapM readFile files
           putStrLn . unwords . take w $ mangle h txt (take h $ words txt) rng
 
-parseArgs :: [String] -> IO Options
+parseArgs :: [String] -> IO (Options,[String])
 parseArgs args = do 
   case getOpt Permute options args of
-    (o,[],[]) -> return $ foldr ($) defaultOpts o
-    (_,ns,es) -> do
-      let unrecs = map (\n -> "Unknown argument: " ++ n ++ "\n") ns
-          header = "Usage: tangle [OPTIONS...]"
+    (o,ns,[]) -> return $ (foldr ($) defaultOpts o, ns)
+    (_,_,es) -> do
+      let header = "Usage: tangle [OPTIONS...] [FILES...]"
           usage  = usageInfo header options
-      mapM_ putStr (unrecs ++ es)
+      mapM_ putStr es
       putStr usage
       exitFailure
 

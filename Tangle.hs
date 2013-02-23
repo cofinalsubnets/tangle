@@ -8,8 +8,11 @@ import qualified Trie.Map as TM
 type Counter = TC.CountTrie Char
 type WordMap = TM.TrieMap String Counter
 
--- | Generate a new text based on the input text by resolving the input into a
--- Markov model (where states are words) and following the chain.
+-- | Generate a new text based on an input text and starting with a
+-- seed text, by resolving the input into a Markov model (where states
+-- are words) and following the chain.
+-- TODO Break it into words at this level, and make the rest of the
+-- code agnostic about alphabet?
 mangle :: Int -> String -> [String] -> StdGen -> [String]
 mangle n = wStream . train n
 
@@ -26,6 +29,7 @@ slices _ [] = []
 slices n ls = s : (slices n l)
   where (s, l) = splitAt n ls
 
+-- | Return a word n-gram Markov model for str.
 train :: Int -> String -> WordMap
 train n str = foldl count TM.mkTrie groups
   where groups = concat [groupWs (words str) i | i <- [2..n+1]]
@@ -35,13 +39,18 @@ train n str = foldl count TM.mkTrie groups
 rots :: [a] -> Int -> [[a]]
 rots ws n = [rot i ws | i <- [0..n-1]]
 
+-- | Return the length-n sublists of ws, in order.
 groupWs :: [a] -> Int -> [[a]]
 groupWs ws n = filter (\s -> length s == n) $ concatMap (slices n) $ rots ws n
         
+-- | Return the weighted options for the next output from a state.
 nxts :: [String] -> WordMap -> [(String,Int)]
 nxts [] _ = []
 nxts ws d = (TC.toList . fromMaybe TC.mkTrie . TM.lookup ws $ d) ++ nxts (tail ws) d
 
+-- | Sample from weighted options with probability proportional to weight.
+-- String could be a type variable instead, right?
+-- Could Int be more generic too?
 select :: [(String,Int)] -> StdGen -> Maybe (String,StdGen)
 select []   _   = Nothing
 select opts rng = Just (snd $ foldl1 sel opts', rng')
@@ -50,6 +59,7 @@ select opts rng = Just (snd $ foldl1 sel opts', rng')
         sel s s' = if fst s' > n then s else s'
         (n, rng') = randomR (1,last wts) rng
 
+-- | Generate a random sequence from a model and a starting state.
 wStream :: WordMap -> [String] -> StdGen -> [String]
 wStream dict state rng = case select (nxts state dict) rng of
   Nothing -> []

@@ -36,7 +36,7 @@ mkTrie = Node Nothing $ M.fromList []
 -- value wrapped in Just; otherwise return Nothing.
 lookup          :: Ord a => [a] -> TrieMap a b -> Maybe b
 lookup [] n     = value n
-lookup (c:cs) n = M.lookup c (nodes n) >>= lookup cs >>= return
+lookup (c:cs) n = M.lookup c (nodes n) >>= lookup cs
 
 -- | Insert the given key-value pair into the trie. If the key already exists,
 -- replace its value.

@@ -2,7 +2,7 @@ PREFIX := /usr/local
 BINDIR := /bin
 BINNAME := tangle
 
-GHCFLAGS := -Wall -Werror -O2
+GHCFLAGS := -Wall -Werror -O2 -rtsopts
 
 build:
 	ghc --make Main.hs -o ${BINNAME} ${GHCFLAGS}

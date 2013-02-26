@@ -11,7 +11,7 @@ main = do rng <- getStdGen
           txt <- if null files
                  then getContents
                  else liftM unwords $ mapM readFile files
-          putStrLn . unwords . take w $ mangle h txt (take h $ words txt) rng
+          putStrLn . unwords . take w $ mangle h txt rng
 
 parseArgs :: [String] -> IO (Options,[String])
 parseArgs args = do 

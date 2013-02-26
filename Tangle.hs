@@ -12,33 +12,36 @@ import Control.Applicative
 -- seed text, by resolving the input into a Markov model (where states
 -- are words) and following the chain.
 mangle :: Int -> String -> StdGen -> [String]
-mangle n str = let ws = words str in chain (mkModel n ws) (take n ws)
+mangle n str  = chain model seed
+  where model = mkModel n ws :: Model String Int
+        seed  = take n ws
+        ws    = words str
 
-type Model = Map [String] (Map String Int)
+type Model a b = Map [a] (Map a b)
 
-mkModel :: Int -> [String] -> Model
+mkModel :: (Ord a, Num b, Enum b) => Int -> [a] -> Model a b
 mkModel n items = train n items $ M.fromList []
 
-train :: Int -> [String] -> Model -> Model
+train :: (Ord a, Num b, Enum b) => Int -> [a] -> Model a b -> Model a b
 train n items model = foldl observe' model subs
   where subs = concat [sublists i items | i <- [2..n+1]]
         observe' mdl es = let (ks,ev) = (,) <$> init <*> last $ es
                           in observe ks ev mdl
 
 -- | Record a state transition, updating the model.
-observe :: [String] -> String -> Model -> Model
+observe :: (Ord a, Num b, Enum b) => [a] -> a -> Model a b -> Model a b
 observe ks ev model = M.insert ks updated model
   where updated = M.insert ev count counts
         count   = succ $ fromMaybe 0 $ M.lookup ev counts
         counts  = fromMaybe mkCounter $ M.lookup ks model
 
-chain :: RandomGen t => Model -> [String] -> t -> [String]
+chain :: (Ord a, Ord b, Num b, Random b, RandomGen t) => Model a b -> [a] -> t -> [a]
 chain model state rng = case select (nxts state model) rng of
   Nothing -> []
   Just (nxt,rng') -> nxt:(chain model (tail state ++ [nxt]) rng')
 
 -- | Return an empty event counter for weighting state transitions.
-mkCounter :: Map String Int
+mkCounter :: (Ord a, Num b) => Map a b
 mkCounter = M.fromList []
 
 -- | Return the length-k sublists of xs, in order.
@@ -48,14 +51,14 @@ sublists k xs = [map (a!) [i..i+k-1] | i <- [0..n-k]]
         n = length xs
 
 -- | Return the weighted options for the next output from a state.
-nxts :: [String] -> Model -> [(String,Int)]
+nxts :: (Ord a, Num b) => [a] -> Model a b -> [(a,b)]
 nxts [] _ = []
 nxts ws d = (M.toList . fromMaybe mkCounter . M.lookup ws $ d) ++ nxts (tail ws) d
 
 -- | Sample from weighted options with probability proportional to weight.
 -- String could be a type variable instead, right?
 -- Could Int be more generic too?
-select :: RandomGen t => [(String,Int)] -> t -> Maybe (String,t)
+select :: (Ord a, Num b, Random b, Ord b) => RandomGen t => [(a,b)] -> t -> Maybe (a,t)
 select []   _   = Nothing
 select opts rng = Just (snd $ foldl1 sel opts', rng')
   where wts = scanl1 (+) $ map snd opts

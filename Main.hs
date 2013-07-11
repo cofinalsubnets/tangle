@@ -11,7 +11,7 @@ main = getArgs >>= parseArgs >>= go
       txt <- if null files then getContents
              else fmap unwords $ mapM readFile files
       rng <- getStdGen
-      putStrLn . unwords . take w $ mangleText h txt rng
+      putStrLn . unwords . take w $ mangle h (words txt) rng
 
 parseArgs :: [String] -> IO (Options,[String])
 parseArgs args = case getOpt Permute options args of

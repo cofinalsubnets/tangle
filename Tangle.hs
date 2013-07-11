@@ -1,4 +1,4 @@
-module Tangle (mangle, mangleText) where
+module Tangle (mangle) where
 
 import Data.Map (Map)
 import System.Random (RandomGen, randomR)
@@ -14,9 +14,6 @@ mangle n ws = maybe [] start . initialState
   where
     start = uncurry $ chain (model n ws)
     initialState = sample $ n `grams` ws
-
-mangleText :: RandomGen g => Int -> String -> g -> [String]
-mangleText = (. words) . mangle
 
 -- | Build an order i model from a sequence of states.
 model :: Ord a => Int -> [a] -> Model a

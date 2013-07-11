@@ -14,7 +14,7 @@ mangle n items = maybe [] go . initialState
     go = uncurry $ chain (model n items)
     initialState = sample (n `grams` items)
 
--- | Build an order i model from a sequence of states.
+-- | Build an order n model from a sequence of states.
 model :: Ord a => Int -> [a] -> Model a
 model n items = train M.empty ngrams
   where
@@ -30,10 +30,11 @@ chain mdl st = maybe [] next . sample candidates
 
 -- | Train a model with a state transition.
 transition :: Ord a => Model a -> [a] -> a -> Model a
-transition mdl st ev = M.insert st (M.insert ev count counts) mdl
+transition mdl st ev = M.insert st newCounts mdl
   where
-    count  = succ $ M.findWithDefault 0 ev counts
-    counts = M.findWithDefault M.empty st mdl
+    newCounts = M.insert ev newCount oldCounts
+    newCount  = succ $ M.findWithDefault 0 ev oldCounts
+    oldCounts = M.findWithDefault M.empty st mdl
 
 -- | All length-n sublists.
 grams :: Int -> [a] -> [[a]]
@@ -41,7 +42,9 @@ grams n = filter ((==n) . length) . map (take n) . tails
 
 -- | Return the weighted options for the next output from a state.
 successors :: Ord a => Model a -> [a] -> [(a, Int)]
-successors mdl = concatMap (maybe [] M.toList . flip M.lookup mdl) . tails
+successors mdl = concatMap counts . tails
+  where
+    counts i = maybe [] M.toList (M.lookup i mdl)
 
 -- | Sample a random element from a list.
 sample :: RandomGen g => [a] -> g -> Maybe (a,g)

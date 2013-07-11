@@ -1,27 +1,27 @@
 import Tangle
-import System.Environment
-import System.Exit
+import System.Environment (getArgs)
+import System.Exit (exitFailure)
 import System.Console.GetOpt
-import System.Random
+import System.Random (getStdGen)
 
 main :: IO ()
 main = getArgs >>= parseArgs >>= go
   where
-    go (Options w h, files) = do
-      txt <- if null files then getContents
-             else fmap unwords $ mapM readFile files
+    go (Options w h fs) = do
+      txt <- if null fs then getContents
+             else fmap unwords $ mapM readFile fs
       rng <- getStdGen
       putStrLn . unwords . take w $ mangle h (words txt) rng
 
-parseArgs :: [String] -> IO (Options,[String])
+parseArgs :: [String] -> IO Options
 parseArgs args = case getOpt Permute options args of
-  (o,ns,[]) -> return $ (foldr ($) defaults o, ns)
-  (_,_,es)  -> mapM_ putStr es >> putStr usage >> exitFailure
+  (o,fs,[]) -> return $ (foldr ($) defaults o) { files = fs }
+  (_,_,err) -> mapM_ putStr err >> putStr usage >> exitFailure
 
-data Options = Options { maxWords  :: Int, ngramSize :: Int }
+data Options = Options { maxWords  :: Int, ngramSize :: Int, files :: [String] }
 
 defaults :: Options
-defaults = Options { maxWords = 1000, ngramSize = 2 }
+defaults = Options { maxWords = 1000, ngramSize = 2, files = [] }
 
 header :: String
 header = "Usage: tangle [OPTIONS...] [FILES...]"

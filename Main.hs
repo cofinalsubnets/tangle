@@ -10,12 +10,13 @@ main = getArgs >>= parseArgs >>= go
     go (Options w h, files) = do
       txt <- if null files then getContents
              else fmap unwords $ mapM readFile files
-      getStdGen >>= putStrLn . unwords . take w . mangleText txt h
+      rng <- getStdGen
+      putStrLn . unwords . take w $ mangleText h txt rng
 
 parseArgs :: [String] -> IO (Options,[String])
 parseArgs args = case getOpt Permute options args of
   (o,ns,[]) -> return $ (foldr ($) defaults o, ns)
-  (_,_,es) -> mapM_ putStr es >> putStr usage >> exitFailure
+  (_,_,es)  -> mapM_ putStr es >> putStr usage >> exitFailure
 
 data Options = Options { maxWords  :: Int, ngramSize :: Int }
 

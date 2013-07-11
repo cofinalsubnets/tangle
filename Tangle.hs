@@ -1,68 +1,53 @@
-module Tangle (mangle) where
+module Tangle (mangle, mangleText) where
 
 import Data.Map (Map)
-import System.Random
-import Data.Array
+import System.Random (RandomGen, randomR)
+import Data.List (tails)
 import qualified Data.Map as M
-import Data.Maybe
-import Control.Applicative
 
+type Model a = Map [a] (Map a Int)
 
--- | Generate a new text based on an input text and starting with a
--- seed text, by resolving the input into a Markov model (where states
--- are words) and following the chain.
-mangle :: Int -> String -> StdGen -> [String]
-mangle n str  = chain model seed
-  where model = mkModel n ws :: Model String Int
-        seed  = take n ws
-        ws    = words str
+-- | Generate a novel text based on an input text by resolving the input
+-- into a Markov model with transition memory at most n and following the chain.
+mangle :: (Ord a, RandomGen g) => [a] -> Int -> g -> [a]
+mangle ws n = maybe [] start . initialState ws n
+  where
+    start = uncurry $ chain (model ws n)
+    initialState = (sample .) . flip grams
 
-type Model a b = Map [a] (Map a b)
+mangleText :: RandomGen g => String -> Int -> g -> [String]
+mangleText = mangle . words
 
-mkModel :: (Ord a, Num b, Enum b) => Int -> [a] -> Model a b
-mkModel n items = train n items $ M.fromList []
+model :: Ord a => [a] -> Int -> Model a
+model ws i = train M.empty ngrams
+  where
+    train = foldl $ \m l -> transition m (init l) (last l)
+    ngrams = concat [n `grams` ws | n <- [2..i]]
 
-train :: (Ord a, Num b, Enum b) => Int -> [a] -> Model a b -> Model a b
-train n items model = foldl observe' model subs
-  where subs = concat [sublists i items | i <- [2..n+1]]
-        observe' mdl es = let (ks,ev) = (,) <$> init <*> last $ es
-                          in observe ks ev mdl
+chain :: (Ord a, RandomGen g) => Model a -> [a] -> g -> [a]
+chain m st = maybe [] continue . sample candidates
+  where
+    continue (n, rng) = n : chain m (tail st ++ [n]) rng
+    candidates = expand $ successors m st
+    expand = concatMap (uncurry $ flip replicate)
 
--- | Record a state transition, updating the model.
-observe :: (Ord a, Num b, Enum b) => [a] -> a -> Model a b -> Model a b
-observe ks ev model = M.insert ks updated model
-  where updated = M.insert ev count counts
-        count   = succ $ fromMaybe 0 $ M.lookup ev counts
-        counts  = fromMaybe mkCounter $ M.lookup ks model
+-- | Train a model with a state transition.
+transition :: Ord a => Model a -> [a] -> a -> Model a
+transition m s e = M.insert s (M.insert e count counts) m
+  where
+    count  = maybe 1 succ $ M.lookup e counts
+    counts = maybe M.empty id $ M.lookup s m
 
-chain :: (Ord a, Ord b, Num b, Random b, RandomGen t) => Model a b -> [a] -> t -> [a]
-chain model state rng = case select (nxts state model) rng of
-  Nothing -> []
-  Just (nxt,rng') -> nxt:(chain model (tail state ++ [nxt]) rng')
-
--- | Return an empty event counter for weighting state transitions.
-mkCounter :: (Ord a, Num b) => Map a b
-mkCounter = M.fromList []
-
--- | Return the length-k sublists of xs, in order.
-sublists :: Int -> [a] -> [[a]]
-sublists k xs = [map (a!) [i..i+k-1] | i <- [0..n-k]]
-  where a = listArray (0, n-1) xs
-        n = length xs
+-- | All length-n sublists.
+grams :: Int -> [a] -> [[a]]
+grams n = filter ((==n) . length) . map (take n) . tails
 
 -- | Return the weighted options for the next output from a state.
-nxts :: (Ord a, Num b) => [a] -> Model a b -> [(a,b)]
-nxts [] _ = []
-nxts ws d = (M.toList . fromMaybe mkCounter . M.lookup ws $ d) ++ nxts (tail ws) d
+successors :: Ord a => Model a -> [a] -> [(a, Int)]
+successors d = concatMap (maybe [] M.toList . flip M.lookup d) . tails
 
--- | Sample from weighted options with probability proportional to weight.
--- String could be a type variable instead, right?
--- Could Int be more generic too?
-select :: (Ord a, Num b, Random b, Ord b) => RandomGen t => [(a,b)] -> t -> Maybe (a,t)
-select []   _   = Nothing
-select opts rng = Just (snd $ foldl1 sel opts', rng')
-  where wts = scanl1 (+) $ map snd opts
-        opts' = wts `zip` map fst opts
-        sel s s' = if fst s' > n then s else s'
-        (n, rng') = randomR (1,last wts) rng
+-- | Sample a random element from a list.
+sample :: RandomGen g => [a] -> g -> Maybe (a,g)
+sample [] = const Nothing
+sample l  = return . (\(i, r) -> (l !! i, r)) . randomR (0, length l - 1)
 

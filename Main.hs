@@ -3,42 +3,37 @@ import System.Environment
 import System.Exit
 import System.Console.GetOpt
 import System.Random
-import Control.Monad
 
 main :: IO ()
-main = do rng <- getStdGen
-          (Options w h, files) <- getArgs >>= parseArgs
-          txt <- if null files
-                 then getContents
-                 else liftM unwords $ mapM readFile files
-          putStrLn . unwords . take w $ mangle h txt rng
+main = getArgs >>= parseArgs >>= go
+  where
+    go (Options w h, files) = do
+      txt <- if null files then getContents
+             else fmap unwords $ mapM readFile files
+      getStdGen >>= putStrLn . unwords . take w . mangleText txt h
 
 parseArgs :: [String] -> IO (Options,[String])
-parseArgs args = do 
-  case getOpt Permute options args of
-    (o,ns,[]) -> return $ (foldr ($) defaultOpts o, ns)
-    (_,_,es) -> do
-      let header = "Usage: tangle [OPTIONS...] [FILES...]"
-          usage  = usageInfo header options
-      mapM_ putStr es
-      putStr usage
-      exitFailure
+parseArgs args = case getOpt Permute options args of
+  (o,ns,[]) -> return $ (foldr ($) defaults o, ns)
+  (_,_,es) -> mapM_ putStr es >> putStr usage >> exitFailure
 
-data Options = Options { maxWords :: Int
-                       , history  :: Int
-                       }
+data Options = Options { maxWords  :: Int, ngramSize :: Int }
 
-defaultOpts :: Options
-defaultOpts = Options { maxWords = 1000 
-                      , history  = 1
-                      }
+defaults :: Options
+defaults = Options { maxWords = 1000, ngramSize = 2 }
+
+header :: String
+header = "Usage: tangle [OPTIONS...] [FILES...]"
+
+usage :: String
+usage = usageInfo header options
 
 options :: [OptDescr (Options -> Options)]
 options = [ Option "w" ["words"] 
-              (ReqArg (\n opt -> opt { maxWords = read n }) "WORDS")
-              "maximum number of words to generate" 
-          , Option "h" ["history"]
-              (ReqArg (\n opt -> opt { history = read n }) "HISTORY")
-              "number of previous states to retain" 
+              (ReqArg (\n opt -> opt { maxWords = read n }) "LENGTH")
+              "maximum length of output" 
+          , Option "n" ["maximum-ngram-size"]
+              (ReqArg (\n opt -> opt { ngramSize = read n }) "N")
+              "maximum ngram size to generate" 
           ]
 

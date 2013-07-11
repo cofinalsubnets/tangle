@@ -28,15 +28,15 @@ chain :: (Ord a, RandomGen g) => Model a -> [a] -> g -> [a]
 chain m st = maybe [] continue . sample candidates
   where
     continue (n, rng) = n : chain m (tail st ++ [n]) rng
-    candidates = expand $ successors m st
+    candidates = expand (successors m st)
     expand = concatMap (uncurry $ flip replicate)
 
 -- | Train a model with a state transition.
 transition :: Ord a => Model a -> [a] -> a -> Model a
 transition m s e = M.insert s (M.insert e count counts) m
   where
-    count  = maybe 1 succ $ M.lookup e counts
-    counts = maybe M.empty id $ M.lookup s m
+    count  = succ $ M.findWithDefault 0 e counts
+    counts = M.findWithDefault M.empty s m
 
 -- | All length-n sublists.
 grams :: Int -> [a] -> [[a]]
